@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/jia/Desktop/VscodeCPP/CSproject/hello/hello.csproj": {}
+  },
+  "projects": {
+    "/Users/jia/Desktop/VscodeCPP/CSproject/hello/hello.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/jia/Desktop/VscodeCPP/CSproject/hello/hello.csproj",
+        "projectName": "hello",
+        "projectPath": "/Users/jia/Desktop/VscodeCPP/CSproject/hello/hello.csproj",
+        "packagesPath": "/Users/jia/.nuget/packages/",
+        "outputPath": "/Users/jia/Desktop/VscodeCPP/CSproject/hello/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/jia/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.301/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

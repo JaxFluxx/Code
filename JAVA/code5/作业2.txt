@@ -1,0 +1,69 @@
+1. 阅读下面程序，分析是否能编译通过？如果不能，说明原因。应该如何修改？程序的运行结果是什么？为什么子类的构造方法在运行之前，必须调用父 类的构造方法？能不能反过来？
+
+class Grandparent {
+    public Grandparent() {
+        System.out.println("GrandParent Created.");
+    }
+    public Grandparent(String string) {
+        System.out.println("GrandParent Created.String:" + string);
+    }
+}
+class Parent extends Grandparent {
+    public Parent() {        
+        System.out.println("Parent Created");
+        super("Hello.Grandparent.");
+    }
+}
+class Child extends Parent {
+    public Child() {
+        System.out.println("Child Created");
+    }
+}
+public class Test{
+    public static void main(String args[]) {
+        Child c = new Child();
+    }
+} 
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+2. 阅读下面程序，分析程序中存在哪些错误，说明原因，应如何改正？正确程序的运行结果是什么？
+
+class Animal{
+  void shout(){
+      System.out.println("动物叫!");
+  }
+}
+class Dog extends Animal{
+      public void shout(){  
+          System.out.println("汪汪......!");  
+     }
+      public void sleep() {
+       System.out.println("狗狗睡觉......");
+      } 
+}
+public class Test{
+    public static void main(String args[]) {
+        Animal animal = new Dog(); 
+        animal.shout();
+        animal.sleep();
+        Dog dog = animal;
+        dog.sleep(); 
+        Animal animal2 = new Animal();
+        dog = (Dog)animal2;
+        dog.shout();
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+3. （本题目提交作业）重写Shape类，并派生出新的Circle，Triangle，Rectangle类，要求如下：
+    Shape类包含属性：color，一组普通方法和抽象方法：计算周长和面积，移动图形（图形上所有的点移动一个向量）。
+    Circle类中包含：圆心位置（Point类对象成员），半径。
+    Triangle类中包含：三个顶点位置。
+    rectangle类中包含：四个顶点位置。注意在矩形中初始化只需两个顶点作为左上和右下点，其余应在程序中计算得出。
+    完成类中的各个方法实现，为类中添加equals方法，当图形的各顶点（或圆心、半径）对应相同时视为相等。添加toString方法。编写一个main方法测试以上类。
+    code5\shapes中是程序代码的一部分，可以在此基础上完成。
+
+

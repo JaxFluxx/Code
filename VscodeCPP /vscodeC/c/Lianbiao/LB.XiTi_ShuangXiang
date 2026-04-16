@@ -1,0 +1,109 @@
+/*
+————特殊约瑟夫问题
+编号为1…N的N个小朋友玩游戏，他们按编号顺时针围成一圈，从第一个人开始按逆时针次序报数，报到第M个人出列；然后再从下个人开始按顺时针次序报数，报到第K个人出列；再从下一个人开始按逆时针次序报数，报到第M个人出列；再从下个人开始按顺时针次序报数，报到第K个人出列……以此类推不断循环，直至最后一人出列。请编写程序按顺序输出出列人的编号
+*/
+
+#include <bits/stdc++.h>
+using namespace std;
+typedef struct Node {
+	int data;
+	struct Node *next;
+	struct Node *prior;
+}Node, *LinkList;
+
+//双向链表的初始化
+void InitList(LinkList &L){		//L是链表的头节点
+	L = (Node*)malloc(sizeof(Node));
+	L->next = L;
+	L->prior = NULL;
+	L->data = 1;
+}
+
+//尾插法建立双向链表
+void InsertNode(LinkList &L,int N){
+	Node *p = L;	//q先走，p后走
+
+	for(int i = 2; i <= N; i++){
+		Node *q = (Node*)malloc(sizeof(Node));
+		q->data = i;
+		q->prior = p;
+		q->next = L;
+
+		p->next = q;
+		L->prior = q;
+
+		p = q;
+	}
+}
+
+//功能函数(循环找到结点之后，删除结点)
+void DoWork(LinkList L,int M,int K){
+    Node *q = L, *p = L->next;
+
+    int length = 0;
+    while(p != L){
+        length++;
+        p = p->next;
+    }length++;
+
+    p = L;
+    while(1){
+
+        //逆时针
+        for(int i = 1; i < M; i++){    
+            p = p->prior;
+        }
+        q = p->prior;
+        printf("%d ", p->data);
+		//printf("%d ",length);
+        p->prior->next = p->next;
+        p->next->prior = p->prior;
+        free(p);
+        p = q;
+
+        length--;
+
+
+		//处理当链表中只剩下一个结点时候
+        if(length == 1){
+            printf("%d ",p->data);
+			free(p);
+            return; // 将return语句放在if条件语句内部
+        }
+
+        //顺时针
+        for(int i = 1; i < K; i++)
+            p = p->next;
+        q = p->next;
+        printf("%d ",p->data);
+		//printf("%d ",length);
+        p->prior->next = p->next;
+        p->next->prior = p->prior;
+        free(p);
+        p = q;
+
+        length--;
+
+		//处理当链表中只剩下一个结点时候
+        if(length == 1){
+            printf("%d ",p->data);
+			free(p);
+            return; // 将return语句放在if条件语句内部
+        }
+    }
+}
+
+
+int main(){
+	LinkList L;
+	InitList(L);
+
+	int N, M, K;
+	scanf("%d%d%d",&N,&M,&K);
+
+	InsertNode(L,N);
+	DoWork(L,M,K);
+
+	system("pause");
+	return 0;
+}

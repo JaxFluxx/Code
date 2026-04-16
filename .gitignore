@@ -1,0 +1,20 @@
+.DS_Store
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual envs
+.venv/
+venv/
+env/
+
+# Node / frontend caches
+node_modules/
+.next/
+dist/
+build/
+
+# Keep the standalone project in its own repo
+ai-pictionary/

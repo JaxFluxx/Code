@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Vera</title>
+    <style>
+        body {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            color: #ff6b6b;
+            font-size: 3em;
+            text-shadow: 2px 2px 4px #ffffff;
+            animation: bounce 2s infinite;
+        }
+
+        a {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #6a8caf;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s, transform 0.3s;
+            animation: pulse 2s infinite;
+        }
+
+        a:hover {
+            background-color: #4a69bd;
+            transform: scale(1.1);
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confetti 5s infinite;
+        }
+
+        @keyframes confetti {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .fireworks {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: #ff6b6b;
+            border-radius: 50%;
+            animation: fireworks 3s infinite;
+        }
+
+        @keyframes fireworks {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        #message {
+            color: red;
+            font-size: 2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Vera</h1>
+    <a href="#" id="wrong1">1</a>
+    <a href="#" id="wrong2">2</a>
+    <a href="https://github.com/Dhjeia/Vera/blob/main/IMG_8932.JPG">3</a>
+    <a href="#" id="wrong3">4</a>
+    <h1>Vera</h1>
+
+    <!-- 添加一些五彩纸屑效果 -->
+    <div id="message"></div>
+
+    <script>
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#6a8caf', '#fad0c4', '#ff9a9e', '#4a69bd'];
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(confetti);
+            }
+        }
+
+        function createFireworks() {
+            for (let i = 0; i < 50; i++) {
+                const fireworks = document.createElement('div');
+                fireworks.className = 'fireworks';
+                fireworks.style.left = `${Math.random() * 100}vw`;
+                fireworks.style.top = `${Math.random() * 100}vh`;
+                document.body.appendChild(fireworks);
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            if (event.target.id === 'wrong1') {
+                document.getElementById('message').innerText = 'No this one';
+            } else if (event.target.id === 'wrong2') {
+                document.getElementById('message').innerText = 'Wrong';
+            } else if (event.target.id === 'wrong3') {
+                document.getElementById('message').innerText = 'This is incorrect Madam';
+            }
+        });
+
+        createConfetti();
+        createFireworks();
+    </script>
+</body>
+
+</html>
