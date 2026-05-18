@@ -41,6 +41,10 @@ PLOT_METRICS = [
     "CD8_T_n",
     "CAF_n",
     "PYCR1_CAF_n",
+    "CAF_pycr1_intensity_mean",
+    "CAF_pycr1_intensity_median",
+    "PYCR1_CAF_pycr1_intensity_mean",
+    "PYCR1_CAF_pycr1_intensity_median",
     "CLDN18_Tumor_n",
     "Non_CLDN18_Tumor_n",
     "B_cell_density",
@@ -96,6 +100,10 @@ LABELS = {
     "CD8_T_n": "CD8阳性T细胞数量",
     "CAF_n": "CAF数量",
     "PYCR1_CAF_n": "PYCR1阳性CAF数量",
+    "CAF_pycr1_intensity_mean": "CAF内PYCR1平均强度",
+    "CAF_pycr1_intensity_median": "CAF内PYCR1中位强度",
+    "PYCR1_CAF_pycr1_intensity_mean": "PYCR1阳性CAF内PYCR1平均强度",
+    "PYCR1_CAF_pycr1_intensity_median": "PYCR1阳性CAF内PYCR1中位强度",
     "CLDN18_Tumor_n": "CLDN18.2阳性肿瘤数量",
     "Non_CLDN18_Tumor_n": "CLDN18.2阴性肿瘤数量",
     "B_cell_density": "B细胞相对密度",
@@ -227,6 +235,7 @@ def detect_required_columns(columns: list[str]) -> dict[str, str | None]:
         "vimentin": pick_col(columns, aliases=["vimentin"], prefer_contains=["positivity"]) or pick_col(columns, aliases=["vimentin"]),
         "cd31": pick_col(columns, aliases=["cd31"], prefer_contains=["positivity"]) or pick_col(columns, aliases=["cd31"]),
         "pycr1": pick_col(columns, aliases=["pycr1"], prefer_contains=["positivity"]) or pick_col(columns, aliases=["pycr1"]),
+        "pycr1_intensity": pick_col(columns, aliases=["pycr1"], prefer_contains=["mx"]) or pick_col(columns, aliases=["pycr1"]),
         "cldn18": pick_col(columns, aliases=["cldn18"], prefer_contains=["positivity"]) or pick_col(columns, aliases=["cldn18"]),
     }
     missing = [key for key, value in col_map.items() if key not in {"cell_id"} and value is None]
@@ -257,6 +266,10 @@ def sample_area(coords: np.ndarray) -> float:
 def get_coords(df: pd.DataFrame, flag_col: str) -> np.ndarray:
     sub = df[df[flag_col] == 1]
     return sub[["Center X", "Center Y"]].to_numpy(dtype=float) if len(sub) else np.empty((0, 2), dtype=float)
+
+
+def masked_series(df: pd.DataFrame, flag_col: str, value_col: str) -> pd.Series:
+    return pd.to_numeric(df.loc[df[flag_col] == 1, value_col], errors="coerce").dropna()
 
 
 def fraction_within_radius(src_coords: np.ndarray, tgt_coords: np.ndarray, radius: float = NEAR_RADIUS) -> float:
@@ -321,7 +334,7 @@ def compute_window_metrics(df: pd.DataFrame) -> dict[str, float]:
 def load_sample_from_raw(objects_file: Path) -> pd.DataFrame:
     header_df = pd.read_csv(objects_file, sep="\t", nrows=0)
     col_map = detect_required_columns(list(header_df.columns))
-    usecols = [col_map[key] for key in ["x", "y", "panck", "cd20", "cd68", "cd163", "cd3e", "cd8", "sma", "vimentin", "cd31", "pycr1", "cldn18"]]
+    usecols = [col_map[key] for key in ["x", "y", "panck", "cd20", "cd68", "cd163", "cd3e", "cd8", "sma", "vimentin", "cd31", "pycr1", "pycr1_intensity", "cldn18"]]
     if col_map["cell_id"] is not None:
         usecols.append(col_map["cell_id"])
     usecols = list(dict.fromkeys(usecols))
@@ -342,6 +355,7 @@ def load_sample_from_raw(objects_file: Path) -> pd.DataFrame:
             "Vimentin": to_binary(raw_df[col_map["vimentin"]]),
             "CD31": to_binary(raw_df[col_map["cd31"]]),
             "PYCR1": to_binary(raw_df[col_map["pycr1"]]),
+            "PYCR1_intensity": pd.to_numeric(raw_df[col_map["pycr1_intensity"]], errors="coerce"),
             "CLDN18": to_binary(raw_df[col_map["cldn18"]]),
         }
     )
@@ -366,8 +380,14 @@ def compute_sample_metrics(df: pd.DataFrame) -> dict[str, float]:
     pycr1_caf_coords = get_coords(df, "is_pycr1_caf")
     cldn18_tumor_coords = get_coords(df, "is_cldn18_tumor")
     non_cldn18_tumor_coords = get_coords(df, "is_non_cldn18_tumor")
+    caf_pycr1_vals = masked_series(df, "is_caf", "PYCR1_intensity")
+    pycr1_caf_pycr1_vals = masked_series(df, "is_pycr1_caf", "PYCR1_intensity")
 
     metrics = {"bbox_area": area}
+    metrics["CAF_pycr1_intensity_mean"] = float(caf_pycr1_vals.mean()) if len(caf_pycr1_vals) else np.nan
+    metrics["CAF_pycr1_intensity_median"] = float(caf_pycr1_vals.median()) if len(caf_pycr1_vals) else np.nan
+    metrics["PYCR1_CAF_pycr1_intensity_mean"] = float(pycr1_caf_pycr1_vals.mean()) if len(pycr1_caf_pycr1_vals) else np.nan
+    metrics["PYCR1_CAF_pycr1_intensity_median"] = float(pycr1_caf_pycr1_vals.median()) if len(pycr1_caf_pycr1_vals) else np.nan
     for key, flag_col in [
         ("Tumor", "is_tumor"),
         ("B_cell", "is_b_cell"),
@@ -774,6 +794,10 @@ def write_report_summary(sig_df: pd.DataFrame, within_df: pd.DataFrame, contrast
             "CD8_T_n",
             "CD8_T_density",
             "CD8_T_to_tumor",
+            "CAF_pycr1_intensity_mean",
+            "CAF_pycr1_intensity_median",
+            "PYCR1_CAF_pycr1_intensity_mean",
+            "PYCR1_CAF_pycr1_intensity_median",
             "CD8_T_near_tumor_frac",
             "CD8_T_tumor_neighbors_per_cell",
             "B_cell_n",
@@ -860,6 +884,11 @@ def write_report_summary(sig_df: pd.DataFrame, within_df: pd.DataFrame, contrast
         "",
         "## PYCR1阳性CAF 与 CLDN18.2肿瘤",
         "",
+        f"- `CAF_pycr1_intensity_mean`: mean_diff={format_value(metrics['CAF_pycr1_intensity_mean']['mean_diff'])}, median_diff={format_value(metrics['CAF_pycr1_intensity_mean']['median_diff'])}, p={format_value(metrics['CAF_pycr1_intensity_mean']['wilcoxon_p'], 4)}",
+        f"- `CAF_pycr1_intensity_median`: mean_diff={format_value(metrics['CAF_pycr1_intensity_median']['mean_diff'])}, median_diff={format_value(metrics['CAF_pycr1_intensity_median']['median_diff'])}, p={format_value(metrics['CAF_pycr1_intensity_median']['wilcoxon_p'], 4)}",
+        f"- `PYCR1_CAF_pycr1_intensity_mean`: mean_diff={format_value(metrics['PYCR1_CAF_pycr1_intensity_mean']['mean_diff'])}, median_diff={format_value(metrics['PYCR1_CAF_pycr1_intensity_mean']['median_diff'])}, p={format_value(metrics['PYCR1_CAF_pycr1_intensity_mean']['wilcoxon_p'], 4)}",
+        f"- `PYCR1_CAF_pycr1_intensity_median`: mean_diff={format_value(metrics['PYCR1_CAF_pycr1_intensity_median']['mean_diff'])}, median_diff={format_value(metrics['PYCR1_CAF_pycr1_intensity_median']['median_diff'])}, p={format_value(metrics['PYCR1_CAF_pycr1_intensity_median']['wilcoxon_p'], 4)}",
+        "",
         f"- `PYCR1_CAF_near_tumor_frac`: mean_diff={format_value(metrics['PYCR1_CAF_near_tumor_frac']['mean_diff'])}, median_diff={format_value(metrics['PYCR1_CAF_near_tumor_frac']['median_diff'])}, p={format_value(metrics['PYCR1_CAF_near_tumor_frac']['wilcoxon_p'], 4)}",
         f"- `PYCR1_CAF_near_cd8_frac`: mean_diff={format_value(metrics['PYCR1_CAF_near_cd8_frac']['mean_diff'])}, median_diff={format_value(metrics['PYCR1_CAF_near_cd8_frac']['median_diff'])}, p={format_value(metrics['PYCR1_CAF_near_cd8_frac']['wilcoxon_p'], 4)}",
         f"- `PYCR1_CAF_near_CLDN18_Tumor_frac`: mean_diff={format_value(metrics['PYCR1_CAF_near_CLDN18_Tumor_frac']['mean_diff'])}, median_diff={format_value(metrics['PYCR1_CAF_near_CLDN18_Tumor_frac']['median_diff'])}, p={format_value(metrics['PYCR1_CAF_near_CLDN18_Tumor_frac']['wilcoxon_p'], 4)}",
@@ -872,7 +901,7 @@ def write_report_summary(sig_df: pd.DataFrame, within_df: pd.DataFrame, contrast
         f"- `CLDN18_Tumor_near_PYCR1_CAF_frac`: mean_diff={format_value(metrics['CLDN18_Tumor_near_PYCR1_CAF_frac']['mean_diff'])}, median_diff={format_value(metrics['CLDN18_Tumor_near_PYCR1_CAF_frac']['median_diff'])}, p={format_value(metrics['CLDN18_Tumor_near_PYCR1_CAF_frac']['wilcoxon_p'], 4)}",
         f"- `Non_CLDN18_Tumor_near_PYCR1_CAF_frac`: mean_diff={format_value(metrics['Non_CLDN18_Tumor_near_PYCR1_CAF_frac']['mean_diff'])}, median_diff={format_value(metrics['Non_CLDN18_Tumor_near_PYCR1_CAF_frac']['median_diff'])}, p={format_value(metrics['Non_CLDN18_Tumor_near_PYCR1_CAF_frac']['wilcoxon_p'], 4)}",
         "",
-        "解释：这一段现在把 CLDN18.2阳性和阴性肿瘤完全拆开看，不再混成一个总 Tumor。重点看的是20μm局部小圈里，它们和 CD8、和 PYCR1+CAF 的接触是不是一起变少。",
+        "解释：这一段现在把 CLDN18.2阳性和阴性肿瘤完全拆开看，不再混成一个总 Tumor。重点看的是20μm局部小圈里，它们和 CD8、和 PYCR1+CAF 的接触是不是一起变少；同时也补看了 CAF / PYCR1+CAF 自己的 PYCR1 强度有没有升高。",
         "",
         "## 新增：阳性肿瘤 vs 阴性肿瘤的多半径空间验证",
         "",
@@ -943,6 +972,7 @@ def main() -> None:
     make_line_grid(pair_df, ["PYCR1_CAF_near_CLDN18_Tumor_frac", "PYCR1_CAF_near_Non_CLDN18_Tumor_frac", "PYCR1_CAF_CLDN18_Tumor_neighbors_per_cell", "PYCR1_CAF_Non_CLDN18_Tumor_neighbors_per_cell"], OUT_DIR / "09_PYCR1_CAF与阳阴性肿瘤折线图.png", "PYCR1+CAF 与阳性/阴性肿瘤分别比较")
     make_line_grid(pair_df, ["CLDN18_Tumor_near_PYCR1_CAF_frac", "Non_CLDN18_Tumor_near_PYCR1_CAF_frac", "CD8_T_near_CLDN18_Tumor_frac", "CD8_T_near_Non_CLDN18_Tumor_frac"], OUT_DIR / "10_阳阴性肿瘤与PYCR1_CAF_CD8折线图.png", "阳性/阴性肿瘤与 PYCR1+CAF / CD8 分别比较")
     make_line_grid(pair_df, ["window_cd8_tumor_frac", "window_tumor_caf_frac", "window_cd8_caf_frac"], OUT_DIR / "11_局部窗口折线图.png", "局部窗口模式")
+    make_line_grid(pair_df, ["CAF_pycr1_intensity_mean", "CAF_pycr1_intensity_median", "PYCR1_CAF_pycr1_intensity_mean", "PYCR1_CAF_pycr1_intensity_median"], OUT_DIR / "15_PYCR1强度折线图.png", "CAF / PYCR1+CAF 的 PYCR1 强度")
     make_heatmap(
         sig_df,
         [
@@ -950,6 +980,7 @@ def main() -> None:
             "CD8_T_near_tumor_frac", "CD8_T_tumor_neighbors_per_cell",
             "B_cell_n", "B_cell_density", "B_cell_to_tumor", "B_cell_near_tumor_frac", "B_cell_tumor_neighbors_per_cell",
             "CAF_n", "CAF_density", "CAF_to_tumor", "CAF_near_tumor_frac", "CD8_T_near_CAF_frac",
+            "CAF_pycr1_intensity_mean", "CAF_pycr1_intensity_median", "PYCR1_CAF_pycr1_intensity_mean", "PYCR1_CAF_pycr1_intensity_median",
             "PYCR1_CAF_near_tumor_frac", "PYCR1_CAF_near_cd8_frac", "PYCR1_CAF_cd8_neighbors_per_cell",
             "CLDN18_Tumor_frac_of_tumor", "Non_CLDN18_Tumor_frac_of_tumor",
             "CLDN18_Tumor_near_cd8_frac", "Non_CLDN18_Tumor_near_cd8_frac",
