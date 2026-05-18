@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CODEX 配对样本空间证据展示系统</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F2A4A'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%232F80ED'/%3E%3Ccircle cx='32' cy='32' r='7' fill='white'/%3E%3C/svg%3E">
+  <script src="./data.js"></script>
+  <style>
+    :root {
+      --bg: #f1f4f7;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #687586;
+      --line: #e2e8ef;
+      --blue: #2F80ED;
+      --navy: #12345a;
+      --shadow: 0 14px 38px rgba(20, 35, 55, .07);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      color: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", Arial, sans-serif;
+      background:
+        linear-gradient(90deg, rgba(18,52,90,.035) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(18,52,90,.035) 1px, transparent 1px),
+        linear-gradient(180deg, #fafcff 0%, var(--bg) 100%);
+      background-size: 42px 42px, 42px 42px, auto;
+    }
+    .shell { max-width: 1780px; height: 100vh; margin: 0 auto; padding: 12px 16px; display: grid; grid-template-rows: 64px 98px 94px minmax(0, 1fr); gap: 12px; overflow: hidden; }
+    .hero {
+      display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 14px;
+      align-items: center; margin-bottom: 0;
+      background: rgba(255,255,255,.90);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 10px 14px;
+    }
+    .hero-main, .hero-aside, .panel, .metric-card, .stat-card {
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero-main { padding: 0; position: relative; overflow: hidden; box-shadow: none; background: transparent; border: 0; border-radius: 0; }
+    .hero-main::after {
+      content: ""; position: absolute; inset: auto 26px 0 auto; width: 260px; height: 92px;
+      background: linear-gradient(90deg, rgba(47,128,237,.08), rgba(18,52,90,.02));
+      border-radius: 999px 999px 0 0; filter: blur(2px); pointer-events: none;
+    }
+    .eyebrow { display: none; }
+    h1 { margin: 0 0 3px; font-size: 23px; line-height: 1.04; color: #12263f; letter-spacing: -.025em; }
+    .claim { font-size: 13px; color: #0f4c81; font-weight: 900; margin: 0; }
+    .claim-sub { display: none; }
+    .hero-aside { padding: 0; display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 8px; box-shadow: none; background: transparent; border: 0; border-radius: 0; }
+    .tool-title { display: none; }
+    .controls { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+    .control-strip { background: transparent; border: 0; border-radius: 0; padding: 0; }
+    select, button, .toggle {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 12px;
+    }
+    button { cursor: pointer; font-weight: 800; transition: .16s ease; }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(20,35,55,.10); }
+    button.primary { background: #0F2A4A; color: #fff; border-color: #0F2A4A; box-shadow: none; }
+    button.ghost { background: #f5f8fb; }
+    .metric-grid { display: none; }
+    .metric-card { padding: 7px 12px; min-height: 0; cursor: pointer; transition: .18s ease; box-shadow: none; border-radius: 14px; overflow: hidden; }
+    .metric-card:hover, .metric-card.active { transform: none; border-color: rgba(47,128,237,.48); background: rgba(47,128,237,.045); }
+    .metric-title { font-weight: 900; margin-bottom: 5px; color: #1a2d42; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; align-items: center; white-space: nowrap; overflow: hidden; }
+    .metric-title .name { overflow: hidden; text-overflow: ellipsis; }
+    .trend-chip { flex: 0 0 auto; font-size: 11px; font-weight: 900; }
+    .metric-flow { display: flex; align-items: end; gap: 9px; color: var(--muted); font-size: 11px; }
+    .metric-flow b { display: block; color: var(--ink); font-size: 16px; margin-top: 0; letter-spacing: -.01em; }
+    .metric-arrow { color: #8a98a8; font-size: 15px; padding-bottom: 1px; }
+    .trend { margin-top: 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+    .down { color: #1767cf; font-weight: 900; }
+    .up { color: #c94d43; font-weight: 900; }
+    .flat { color: #5c6875; font-weight: 900; }
+    .evidence-nav {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      gap: 10px;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .nav-title {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.88);
+      padding: 11px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+    }
+    .nav-title span {
+      color: #0F2A4A;
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+    .nav-title b {
+      color: #66778a;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .conclusion-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .conclusion-card {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255,255,255,.90);
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: auto minmax(0,1fr) auto;
+      grid-template-rows: auto minmax(0,1fr);
+      column-gap: 8px;
+      row-gap: 3px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--ink);
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+      box-shadow: none;
+    }
+    .conclusion-card:hover,
+    .conclusion-card.active {
+      transform: none;
+      border-color: rgba(47,128,237,.70);
+      background: rgba(47,128,237,.055);
+    }
+    .conclusion-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #eef4fb;
+      color: #0F2A4A;
+      font-size: 12px;
+      font-weight: 950;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      grid-row: 1 / span 2;
+      margin-top: 1px;
+    }
+    .conclusion-card.active .conclusion-index {
+      background: #0F2A4A;
+      color: #fff;
+    }
+    .conclusion-card strong {
+      font-size: 13px;
+      color: #152b43;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      align-self: center;
+    }
+    .conclusion-card p {
+      grid-column: 2 / span 2;
+      margin: 0;
+      color: #5e6f82;
+      font-size: 11px;
+      line-height: 1.35;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .direction-chip {
+      align-self: center;
+      justify-self: end;
+      border-radius: 999px;
+      background: #f2f6fa;
+      color: #51667c;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .direction-chip.down { background: #eaf3ff; color: #1767cf; }
+    .direction-chip.up { background: #fff0ee; color: #c94d43; }
+    .direction-chip.flat { background: #f3f6f8; color: #5c6875; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 4fr) minmax(300px, 1fr); grid-template-rows: auto minmax(0,1fr); gap: 10px; align-items: stretch; min-height: 0; }
+    .story-strip {
+      grid-column: 1 / -1;
+      border-radius: 19px;
+      border: 1px solid rgba(42, 86, 86, .20);
+      background:
+        linear-gradient(112deg, rgba(47, 98, 94, .98), rgba(44, 75, 91, .97)),
+        linear-gradient(90deg, rgba(255,255,255,.08), transparent);
+      color: #fff;
+      min-height: 72px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 10px 26px rgba(31, 68, 73, .11);
+    }
+    .story-strip .kicker {
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .story-strip h2 {
+      margin: 0;
+      font-size: 23px;
+      line-height: 1.2;
+      letter-spacing: -.015em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .story-strip p {
+      margin: 5px 0 0;
+      color: rgba(255,255,255,.88);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 650;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .story-badge {
+      min-width: 180px;
+      border-radius: 16px;
+      padding: 11px 14px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.92);
+      font-size: 13px;
+      font-weight: 850;
+      text-align: right;
+    }
+    .story-badge span {
+      display: block;
+      color: rgba(255,255,255,.66);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .panel { padding: 16px; }
+    .map-stage { min-height: 0; }
+    .workspace > .map-stage > .panel { padding: 10px; border-radius: 20px; height: 100%; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 8px; }
+    .viewer-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 0; min-height: 36px; }
+    .viewer-title h2 { margin: 0; font-size: 17px; letter-spacing: -.01em; }
+    .viewer-title p { display: none; }
+    .stage-conclusion {
+      display: none;
+      margin: 0 0 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(47,128,237,.18);
+      border-left: 5px solid var(--blue);
+      border-radius: 20px;
+      background: linear-gradient(90deg, rgba(47,128,237,.085), rgba(255,255,255,.78));
+      box-shadow: none;
+    }
+    .stage-conclusion .step {
+      color: #1767cf;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .stage-conclusion h3 {
+      margin: 0;
+      color: #112f50;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: -.01em;
+    }
+    .stage-conclusion p {
+      margin: 7px 0 0;
+      color: #52677e;
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+    .type-toggles { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+    .toggle { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; font-size: 12px; user-select: none; background: rgba(255,255,255,.74); }
+    .toggle.focus { border-color: rgba(47,128,237,.52); background: rgba(47,128,237,.055); }
+    .toggle input { accent-color: var(--blue); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .paired-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+    .map-card { background: #fbfcfd; border: 1px solid var(--line); border-radius: 18px; padding: 9px; position: relative; overflow: hidden; box-shadow: none; display: grid; grid-template-rows: auto minmax(0,1fr) auto; min-height: 0; }
+    .map-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-weight: 900; font-size: 15px; }
+    canvas.space { width: 100%; height: 100%; min-height: 0; display: block; background: #f7f9fb; border: 1px solid #dce5ee; border-radius: 14px; cursor: crosshair; }
+    .scale { position: absolute; left: 28px; bottom: 28px; font-size: 12px; color: var(--muted); background: rgba(255,255,255,.78); padding: 5px 7px; border-radius: 8px; }
+    .map-caption { color: var(--muted); font-size: 12px; margin-top: 5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 0; color: var(--muted); font-size: 12px; }
+    .side { position: static; display: flex; flex-direction: column; gap: 0; min-height: 0; }
+    .side h3 { margin: 0 0 10px; font-size: 18px; }
+    .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; color: var(--muted); }
+    .kv b { display: block; color: var(--ink); font-size: 15px; margin-top: 2px; }
+    .evidence-stack { display: grid; gap: 10px; margin-top: 12px; }
+    .evidence-block { border: 1px solid var(--line); border-radius: 15px; padding: 11px 12px; background: #f8fafc; }
+    .evidence-block strong { display: block; font-size: 12px; color: #52677e; margin-bottom: 5px; letter-spacing: .04em; }
+    .evidence-block p { margin: 0; line-height: 1.58; font-weight: 740; color: #193a5a; }
+    .evidence-block.boundary { background: #fff8e8; border-color: #f3d99c; }
+    .evidence-block.boundary p { color: #76520e; font-weight: 650; }
+    .explain { margin-top: 12px; background: #edf6ff; border: 1px solid #cfe3fb; color: #164a7a; border-radius: 14px; padding: 12px; line-height: 1.65; font-weight: 700; }
+    .caution { background: #fff8e8; border-color: #f3d99c; color: #76520e; font-weight: 600; }
+    .stats { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; margin-top: 0; opacity: 1; min-height: 0; overflow: hidden; }
+    .stat-card { padding: 6px 8px; cursor: pointer; box-shadow: none; border-radius: 14px; min-width: 0; min-height: 0; height: 100%; overflow: hidden; display: grid; grid-template-rows: 18px minmax(0,1fr) 16px; background: rgba(255,255,255,.88); }
+    .stat-card.active { outline: 1.5px solid rgba(47,128,237,.65); background: rgba(47,128,237,.045); }
+    .stat-card h4 { margin: 0; font-size: 11px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-card .thumb-direction { color: var(--muted); font-size: 10px; line-height: 16px; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    canvas.stat { width: 100%; height: 100%; min-height: 0; display: block; }
+    .tour-box { background: #fff; color: var(--ink); border: 1px solid var(--line); border-radius: 18px; padding: 13px; box-shadow: none; height: 100%; display: flex; flex-direction: column; overflow: auto; }
+    .tour-box h3 { color: #0F2A4A; font-size: 20px; margin-bottom: 8px; }
+    .tour-box p { color: #26384c; line-height: 1.55; font-weight: 700; }
+    .tour-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tour-actions button { background: #f5f8fb; color: var(--ink); border-color: var(--line); }
+    .roi-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px; margin-top: 8px; }
+    .roi-pill { background: #f7f9fb; border: 1px solid var(--line); border-radius: 12px; padding: 7px; font-size: 11px; color: var(--muted); }
+    .roi-pill b { display: block; color: var(--ink); font-size: 14px; }
+    .roi-details { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
+    .roi-details summary { cursor: pointer; color: #0F2A4A; font-weight: 900; font-size: 13px; }
+    .detail-details {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: #fbfcfe;
+    }
+    .detail-details summary {
+      cursor: pointer;
+      color: #0F2A4A;
+      font-weight: 950;
+      font-size: 13px;
+      list-style-position: outside;
+    }
+    .brief-line {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 11px 12px;
+      background: #f8fafc;
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .brief-line .label {
+      color: #587088;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .04em;
+    }
+    .brief-line b {
+      color: #142a42;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+    .boundary-modal {
+      position: fixed; inset: 0; z-index: 20; display: none; place-items: center;
+      background: rgba(15,42,74,.22); backdrop-filter: blur(4px);
+    }
+    .boundary-modal.active { display: grid; }
+    .boundary-card {
+      width: min(720px, calc(100vw - 40px));
+      background: #fff; border: 1px solid var(--line); border-radius: 22px;
+      padding: 22px 24px; box-shadow: 0 24px 80px rgba(15,42,74,.18);
+    }
+    .boundary-card h3 { margin: 0 0 12px; color: #0F2A4A; font-size: 22px; }
+    .boundary-card p { margin: 8px 0; color: #42566d; line-height: 1.7; font-weight: 650; }
+    .boundary-card .close-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+    @media (max-width: 1200px) {
+      body { overflow: auto; }
+      .shell { height: auto; min-height: 100vh; overflow: visible; grid-template-rows: auto auto auto auto; }
+      .hero, .workspace, .paired-view { grid-template-columns: 1fr; }
+      .stats, .conclusion-grid { grid-template-columns: repeat(2, 1fr); }
+      .evidence-nav { grid-template-columns: 1fr; }
+      .story-strip { grid-template-columns: 1fr; }
+      .story-badge { text-align: left; }
+      .side { position: static; }
+    }
+    body.presentation .advanced-control,
+    body.presentation .roi-details,
+    body.presentation .type-toggles,
+    body.presentation .map-caption,
+    body.presentation .viewer-title p {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-main">
+        <div class="eyebrow">CODEX Paired Spatial Evidence</div>
+        <h1>CODEX 配对样本空间证据展示系统</h1>
+        <p class="claim">卵巢转移灶中 CD8+T 细胞减少，并伴随局部免疫接触下降</p>
+        <p class="claim-sub">以配对空间图为主舞台，串联 CD8 主结论、B 细胞佐证、肿瘤表型变化与局部生态重组证据。</p>
+      </div>
+      <div class="hero-aside">
+        <div class="control-strip">
+          <div class="tool-title">Presentation Controls</div>
+          <div class="controls">
+            <label>配对样本 <select id="pairSelect"></select></label>
+            <button class="primary" id="tourStart">开始导览</button>
+            <button id="pauseStep">暂停</button>
+            <button class="ghost" id="exportBtn">导出 PNG</button>
+            <button id="resetView">重置视图</button>
+            <button id="presentationMode">论文截图模式</button>
+            <button class="ghost" id="boundaryBtn">数据边界</button>
+          </div>
+        </div>
+        <div class="controls advanced-control">
+          <button id="roiMode">显示 ROI 局部</button>
+          <label class="toggle"><input type="checkbox" id="showNeighborhood">显示 20μm 邻域圈</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="evidence-nav" aria-label="证据链导航">
+      <div class="nav-title">
+        <span>Evidence Chain</span>
+        <b>点击任一步切换导览，空间图会平滑移动到对应证据区域。</b>
+      </div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="conclusion-grid" id="conclusionCards" aria-label="子结论模块"></section>
+
+    <main class="workspace">
+      <section class="story-strip" aria-label="当前证据讲解">
+        <div>
+          <div class="kicker" id="storyKicker">AUTO GUIDED STORY</div>
+          <h2 id="storyTitle">证据链总览</h2>
+          <p id="storyText">系统会按照论文证据链自动巡回导览，并在每一步切换到对应的代表性空间区域。</p>
+        </div>
+        <div class="story-badge">
+          <span>Current Step</span>
+          <b id="storyBadge">准备导览</b>
+        </div>
+      </section>
+      <section class="map-stage">
+        <div class="panel">
+          <div class="viewer-head">
+            <div class="viewer-title">
+              <h2>Primary vs Metastasis 左右空间对照</h2>
+              <p>默认突出 Tumor 与 CD8_T；其他对象按证据链需要打开，避免把空间图变成“彩色噪声”。</p>
+            </div>
+            <div class="type-toggles" id="typeToggles"></div>
+          </div>
+          <div class="stage-conclusion">
+            <div class="step" id="stageStep">Evidence step</div>
+            <h3 id="stageTitle">证据链总览</h3>
+            <p id="stageText">系统会按照论文证据链自动巡回导览，并在每一步切换到对应的代表性空间区域。</p>
+          </div>
+          <div class="paired-view">
+            <div class="map-card">
+              <div class="map-label"><span>Primary 原发灶</span><span id="primaryCount"></span></div>
+              <canvas class="space" id="primaryCanvas"></canvas>
+              <div class="scale">比例尺 100μm</div>
+              <div class="map-caption" id="primaryCaption"></div>
+            </div>
+            <div class="map-card">
+              <div class="map-label"><span>Metastasis 卵巢转移灶</span><span id="metCount"></span></div>
+              <canvas class="space" id="metCanvas"></canvas>
+              <div class="scale">比例尺 100μm</div>
+              <div class="map-caption" id="metCaption"></div>
+            </div>
+          </div>
+          <div class="legend" id="legend"></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="tour-box evidence-panel-main">
+          <h3 id="tourTitle">证据链导览</h3>
+          <p id="tourText">点击“开始自动导览”，系统会按照论文三层证据链自动切换高亮对象和讲解。</p>
+          <div class="tour-actions">
+            <button id="prevStep">上一步</button>
+            <button id="nextStep">下一步</button>
+          </div>
+          <div class="evidence-stack" id="evidenceSentence"></div>
+          <details class="detail-details roi-details">
+            <summary>展开详细信息</summary>
+            <div class="kv" id="sampleInfo"></div>
+            <div class="roi-grid" id="roiInfo"></div>
+            <div class="explain" id="roiSentence">点击 ROI 或切换 ROI 模式后，查看局部 CD8 接触情况。</div>
+          </details>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="boundary-modal" id="boundaryModal" aria-hidden="true">
+    <div class="boundary-card">
+      <h3>数据来源与解释边界</h3>
+      <p>本系统基于 CODEX 单细胞对象表和空间坐标构建，用于展示胃癌原发灶与卵巢转移灶的配对空间证据。</p>
+      <p>20μm 邻域指标用于表示局部空间接触机会或局部共定位关系，不等同于证明真实细胞相互作用，也不单独推断因果机制。</p>
+      <p>导览中的每个局部 ROI 是为了帮助理解论文证据链，正式结论仍以全体配对样本的定量指标、显著性分析和稳健性分析为准。</p>
+      <div class="close-row"><button id="boundaryClose" class="primary">知道了</button></div>
+    </div>
+  </div>
+
+<script>
+const DATA = window.CODEX_EVIDENCE_DATA;
+const COLORS = DATA.colors;
+const DRAW_ORDER = ["Tumor", "Non_CLDN18_Tumor", "CLDN18_Tumor", "CAF", "PYCR1_CAF", "B_cell", "CD8_T"];
+const TYPE_LABEL = {
+  Tumor: "Tumor", CD8_T: "CD8_T", B_cell: "B_cell", CAF: "CAF",
+  PYCR1_CAF: "PYCR1+CAF", CLDN18_Tumor: "CLDN18.2+ Tumor", Non_CLDN18_Tumor: "CLDN18.2- Tumor"
+};
+const METRIC_LABEL = {
+  CD8_T_density: "CD8+T 细胞密度",
+  CD8_T_n: "CD8+T 细胞数量",
+  CD8_T_to_tumor: "CD8_T/Tumor 比例",
+  CLDN18_Tumor_cd8_neighbors_per_tumor: "肿瘤周围 CD8 平均邻居数",
+  B_cell_density: "B 细胞密度",
+  CLDN18_Tumor_frac: "CLDN18.2 阳性肿瘤比例",
+  PYCR1_CAF_near_cd8_frac: "PYCR1+CAF near CD8"
+};
+let state = {
+  pairIndex: pickDefaultPairIndex(),
+  visible: new Set(["Tumor", "CD8_T"]),
+  focusTypes: new Set(["Tumor", "CD8_T"]),
+  userVisibilityLocked: false,
+  activeMetric: "CD8_T_density",
+  activeRoiKey: "overview",
+  roiMode: false,
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  viewFrom: null,
+  viewTo: null,
+  viewProgress: 1,
+  viewAnim: null,
+  selected: null,
+  tourIndex: 0,
+  tourTimer: null,
+  tourPaused: true
+};
+const TOUR_INTERVAL_MS = 2600;
+const el = id => document.getElementById(id);
+const pairSelect = el("pairSelect");
+const primaryCanvas = el("primaryCanvas");
+const metCanvas = el("metCanvas");
+
+function pickDefaultPairIndex(){
+  if(Number.isInteger(DATA.defaultPairIndex)) return DATA.defaultPairIndex;
+  let best = 0, bestScore = Infinity;
+  DATA.pairs.forEach((p,i)=>{
+    const cards = Object.fromEntries(p.cards.map(c=>[c.metric,c]));
+    const metrics = ["CD8_T_n","CD8_T_density","CD8_T_to_tumor","CLDN18_Tumor_cd8_neighbors_per_tumor"];
+    const allDown = metrics.every(m => (cards[m]?.relative_change ?? 1) < 0);
+    const score = metrics.reduce((acc,m)=>acc + (cards[m]?.relative_change ?? 0), 0);
+    if(allDown && score < bestScore){ best = i; bestScore = score; }
+  });
+  return best;
+}
+function currentPair(){ return DATA.pairs[state.pairIndex]; }
+function sample(side){ const p=currentPair(); return DATA.samples[side==="primary" ? p.primary_sample : p.met_sample]; }
+function fmt(v){ if(v===null || v===undefined || Number.isNaN(v)) return "NA"; if(Math.abs(v)>=1000) return Number(v).toLocaleString(); return Number(v).toFixed(Math.abs(v)<1 ? 3 : 2).replace(/\.?0+$/,""); }
+function rel(v){ return v===null || v===undefined ? "NA" : `${Number(v).toFixed(1)}%`; }
+function directionIcon(d){ return d==="down" ? "↓ 下降" : d==="up" ? "↑ 上升" : "→ 持平"; }
+function activeRoi(s){
+  return (s.rois && s.rois[state.activeRoiKey]) || s.roi || (s.rois && s.rois.overview);
+}
+function metricRecord(metric=state.activeMetric){
+  const p=currentPair();
+  const card=p.cards.find(c=>c.metric===metric);
+  if(card) return card;
+  const panel=DATA.statPanels.find(x=>x.id===metric);
+  const row=panel?.rows?.find(r=>r.pair===p.pair_label);
+  if(row && Number.isFinite(row.primary) && Number.isFinite(row.met)){
+    const diff = row.met - row.primary;
+    const relative = row.primary === 0 ? null : diff / Math.abs(row.primary) * 100;
+    return {
+      metric,
+      label: panel.title || METRIC_LABEL[metric] || metric,
+      primary: row.primary,
+      met: row.met,
+      diff,
+      relative_change: relative,
+      direction: diff < 0 ? "down" : diff > 0 ? "up" : "flat"
+    };
+  }
+  return p.cards[1];
+}
+
+function init(){
+  DATA.pairs.forEach((p,i)=>{
+    const opt=document.createElement("option");
+    opt.value=i; opt.textContent=`患者 ${p.patient_id}: ${p.pair_label}`;
+    pairSelect.appendChild(opt);
+  });
+  pairSelect.value = String(state.pairIndex);
+  pairSelect.addEventListener("change", e=>{ state.pairIndex=+e.target.value; state.selected=null; renderAll(); });
+  el("resetView").onclick=()=>{ state.zoom=1; state.panX=0; state.panY=0; state.selected=null; animateToView("overview", false); };
+  el("roiMode").onclick=()=>{ setRoiMode(!state.roiMode, true); };
+  el("showNeighborhood").onchange=()=>renderAll();
+  el("tourStart").onclick=startTour;
+  el("prevStep").onclick=()=>stepTour(-1, true);
+  el("nextStep").onclick=()=>stepTour(1, true);
+  el("pauseStep").onclick=()=>toggleTourPause();
+  el("presentationMode").onclick=()=>togglePresentationMode();
+  el("boundaryBtn").onclick=()=>toggleBoundary(true);
+  el("boundaryClose").onclick=()=>toggleBoundary(false);
+  el("boundaryModal").onclick=e=>{ if(e.target.id==="boundaryModal") toggleBoundary(false); };
+  el("exportBtn").onclick=exportCurrentView;
+  buildToggles();
+  buildStats();
+  buildConclusionCards();
+  bindCanvas(primaryCanvas, "primary");
+  bindCanvas(metCanvas, "met");
+  renderAll();
+  setStageConclusion("Evidence loop", "证据链总览", "系统会自动循环导览每个子结论；如需停留讲解，可点击右侧“暂停”。");
+  setTimeout(()=>startTour(), 700);
+}
+
+function buildToggles(){
+  const box=el("typeToggles");
+  box.innerHTML="";
+  DRAW_ORDER.forEach(t=>{
+    const lab=document.createElement("label");
+    lab.className="toggle";
+    if(state.focusTypes.has(t)) lab.classList.add("focus");
+    lab.innerHTML=`<input type="checkbox" ${state.visible.has(t)?"checked":""} data-type="${t}"><span class="dot" style="background:${COLORS[t]}"></span>${TYPE_LABEL[t]}`;
+    lab.querySelector("input").onchange=e=>{
+      state.userVisibilityLocked = true;
+      if(e.target.checked) state.visible.add(t); else state.visible.delete(t);
+      renderAll();
+    };
+    box.appendChild(lab);
+  });
+  el("legend").innerHTML = DRAW_ORDER.map(t=>`<span><span class="dot" style="background:${COLORS[t]}"></span> ${TYPE_LABEL[t]}</span>`).join("");
+}
+
+function refreshToggleFocus(){
+  document.querySelectorAll("#typeToggles .toggle").forEach(label=>{
+    const input = label.querySelector("input[data-type]");
+    if(!input) return;
+    label.classList.toggle("focus", state.focusTypes.has(input.dataset.type));
+  });
+}
+
+function buildCards(){
+  const host = el("metricCards");
+  if(!host) return;
+  const p=currentPair();
+  host.innerHTML = p.cards.map(c=>`
+    <div class="metric-card ${c.metric===state.activeMetric?"active":""}" data-metric="${c.metric}">
+      <div class="metric-title"><span class="name">${c.label}</span><span class="trend-chip ${c.direction}">${directionIcon(c.direction)} ${rel(c.relative_change)}</span></div>
+      <div class="metric-flow">
+        <span>Primary<b>${fmt(c.primary)}</b></span>
+        <span class="metric-arrow">→</span>
+        <span>Metastasis<b>${fmt(c.met)}</b></span>
+      </div>
+    </div>
+  `).join("");
+  document.querySelectorAll(".metric-card").forEach(card=>{
+    card.onclick=()=>{
+      state.activeMetric=card.dataset.metric;
+      metricToTypes(state.activeMetric, true);
+      const p=currentPair(), c=p.cards.find(x=>x.metric===state.activeMetric);
+      setStageConclusion("指标聚焦", c ? c.label : "空间指标", "点击指标卡后，空间图会切换高亮相关对象；该视图用于辅助理解论文证据链。");
+      renderAll();
+    };
+  });
+}
+
+function metricToTypes(metric, forceVisible=false){
+  const panel = DATA.statPanels.find(s=>s.id===metric);
+  const types = panel ? panel.target : metric.includes("B_cell") ? ["B_cell"] : metric.includes("PYCR1") ? ["PYCR1_CAF","CD8_T"] : ["Tumor","CD8_T"];
+  setFocusTypes(types, forceVisible);
+}
+function setFocusTypes(types, forceVisible=false){
+  state.focusTypes = new Set(["Tumor", ...types]);
+  if(forceVisible){
+    state.visible = new Set(["Tumor", ...types]);
+    state.userVisibilityLocked = false;
+    buildToggles();
+  } else if(!state.userVisibilityLocked) {
+    state.visible = new Set(["Tumor", ...types]);
+    buildToggles();
+  } else {
+    refreshToggleFocus();
+  }
+}
+
+function buildStats(){
+  const stats=el("stats");
+  stats.innerHTML = DATA.tour.map((step,i)=>`
+    <div class="stat-card" data-tour-index="${i}" data-metric="${step.metric}">
+      <h4>${i+1}. ${step.title}</h4>
+      <canvas class="stat" id="stat_tour_${i}"></canvas>
+      <div class="thumb-direction">${thumbDirection(step)}</div>
+    </div>
+  `).join("");
+  document.querySelectorAll(".stat-card").forEach(c=>{
+    c.onclick=()=>{
+      state.tourIndex=Number(c.dataset.tourIndex);
+      pauseTour(true);
+      applyTour();
+    };
+  });
+}
+
+function thumbDirection(stepOrMetric){
+  const metric = typeof stepOrMetric === "string" ? stepOrMetric : stepOrMetric.metric;
+  const title = typeof stepOrMetric === "string" ? "" : stepOrMetric.title;
+  if(title.includes("总结")) return "框架总结";
+  const card=metricRecord(metric);
+  return card ? `${directionIcon(card.direction)} · ${rel(card.relative_change)}` : "空间证据";
+}
+
+function directionClass(step){
+  if(step.title.includes("总结")) return "flat";
+  const card=metricRecord(step.metric);
+  return card?.direction || "flat";
+}
+
+function conclusionSentence(step, index){
+  const fixed = [
+    "先从全局左右对照进入配对样本的空间差异。",
+    "转移灶中 CD8+T 的数量、密度和肿瘤归一化比例整体减少。",
+    "肿瘤周围 CD8 近邻接触减少，是连接整体下降与局部空间变化的证据。",
+    "B 细胞下降作为免疫减弱趋势的辅助佐证。",
+    "CLDN18.2 阳性/阴性肿瘤比例变化提示肿瘤表型结构发生改变。",
+    "PYCR1+CAF 与 CD8 或 CLDN18.2 阳性肿瘤的局部联系减弱。",
+    "回到三层框架：肿瘤表型变化、局部环境重组与免疫冷化并行出现。"
+  ];
+  return fixed[index] || step.text;
+}
+
+function buildConclusionCards(){
+  const host = el("conclusionCards");
+  if(!host) return;
+  host.innerHTML = DATA.tour.map((step,i)=>{
+    const cls = directionClass(step);
+    return `
+      <button class="conclusion-card ${i===state.tourIndex ? "active" : ""}" data-tour-index="${i}">
+        <span class="conclusion-index">${i+1}</span>
+        <strong>${step.title}</strong>
+        <span class="direction-chip ${cls}">${thumbDirection(step)}</span>
+        <p>${conclusionSentence(step, i)}</p>
+      </button>`;
+  }).join("");
+  host.querySelectorAll(".conclusion-card").forEach(card=>{
+    card.onclick=()=>{
+      state.tourIndex = Number(card.dataset.tourIndex);
+      pauseTour(true);
+      applyTour();
+    };
+  });
+}
+
+function updateConclusionActive(){
+  document.querySelectorAll(".conclusion-card").forEach(card=>{
+    card.classList.toggle("active", Number(card.dataset.tourIndex)===state.tourIndex);
+    const step = DATA.tour[Number(card.dataset.tourIndex)];
+    const chip = card.querySelector(".direction-chip");
+    if(chip && step) {
+      chip.textContent = thumbDirection(step);
+      chip.className = `direction-chip ${directionClass(step)}`;
+    }
+  });
+}
+
+function setStageConclusion(step, title, text){
+  el("stageStep").textContent = step;
+  el("stageTitle").textContent = title;
+  el("stageText").textContent = text;
+  el("storyKicker").textContent = step;
+  el("storyTitle").textContent = title;
+  el("storyText").textContent = text;
+  el("storyBadge").textContent = `${state.tourIndex + 1}/${DATA.tour.length}`;
+}
+
+function drawStats(){
+  DATA.tour.forEach((step,i)=>{
+    const canvas=el(`stat_tour_${i}`);
+    if(!canvas) return;
+    const panel=DATA.statPanels.find(p=>p.id===step.metric);
+    const dpr=window.devicePixelRatio||1;
+    const w=canvas.clientWidth*dpr, h=canvas.clientHeight*dpr;
+    canvas.width=w; canvas.height=h;
+    const ctx=canvas.getContext("2d"); ctx.clearRect(0,0,w,h); ctx.scale(dpr,dpr);
+    if(!panel){
+      ctx.fillStyle="#eef3f8"; ctx.fillRect(0,0,canvas.clientWidth,canvas.clientHeight);
+      ctx.fillStyle="#6b7c8e"; ctx.font="12px sans-serif"; ctx.fillText("证据链总结", 12, canvas.clientHeight/2+4);
+      return;
+    }
+    const rows=panel.rows.filter(r=>r.primary!==null && r.met!==null);
+    const vals=rows.flatMap(r=>[r.primary,r.met]).filter(v=>Number.isFinite(v));
+    const min=Math.min(...vals), max=Math.max(...vals);
+    const pad=8, W=canvas.clientWidth, H=canvas.clientHeight;
+    ctx.strokeStyle="#e3e9f0"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(12,pad); ctx.lineTo(12,H-pad); ctx.lineTo(W-8,H-pad); ctx.stroke();
+    rows.forEach((r,i)=>{
+      const y1=scale(r.primary,min,max,H-pad,pad), y2=scale(r.met,min,max,H-pad,pad);
+      const x1=24, x2=W-16;
+      ctx.strokeStyle="rgba(47,128,237,.24)"; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.fillStyle="#2F80ED"; ctx.beginPath(); ctx.arc(x1,y1,1.8,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle="#78A7E8"; ctx.beginPath(); ctx.arc(x2,y2,1.8,0,Math.PI*2); ctx.fill();
+    });
+  });
+  document.querySelectorAll(".stat-card").forEach(c=>c.classList.toggle("active", Number(c.dataset.tourIndex)===state.tourIndex));
+  document.querySelectorAll(".thumb-direction").forEach((d,i)=>{ d.textContent=thumbDirection(DATA.tour[i]); });
+  updateConclusionActive();
+}
+function scale(v,min,max,a,b){ if(max===min) return (a+b)/2; return a-(v-min)/(max-min)*(a-b); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function easeInOut(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; }
+function normBox(box){
+  if(box.x0 !== undefined) return {xmin: box.x0, xmax: box.x1, ymin: box.y0, ymax: box.y1};
+  return {xmin: box.xmin, xmax: box.xmax, ymin: box.ymin, ymax: box.ymax};
+}
+function boxFor(s, roiKey=state.activeRoiKey, roiMode=state.roiMode){
+  if(!roiMode) return normBox(s.bounds);
+  const roi = (s.rois && s.rois[roiKey]) || s.roi || (s.rois && s.rois.overview);
+  return normBox(roi);
+}
+function mixBox(a,b,t){
+  return {
+    xmin: lerp(a.xmin, b.xmin, t),
+    xmax: lerp(a.xmax, b.xmax, t),
+    ymin: lerp(a.ymin, b.ymin, t),
+    ymax: lerp(a.ymax, b.ymax, t)
+  };
+}
+function currentBox(s, side){
+  if(state.viewFrom && state.viewTo && state.viewProgress < 1){
+    return mixBox(state.viewFrom[side], state.viewTo[side], easeInOut(state.viewProgress));
+  }
+  return boxFor(s);
+}
+
+function canvasTransform(canvas, s, side){
+  const b = currentBox(s, side);
+  const rect = canvas.getBoundingClientRect();
+  const pad = 18;
+  const bw = b.xmax - b.xmin;
+  const bh = b.ymax - b.ymin;
+  const sx = (rect.width - pad*2) / bw;
+  const sy = (rect.height - pad*2) / bh;
+  const base = Math.min(sx, sy) * state.zoom;
+  const xmin = b.xmin, ymin = b.ymin;
+  const cx = rect.width/2 + state.panX;
+  const cy = rect.height/2 + state.panY;
+  return {base, xmin, ymin, bw, bh, cx, cy, rect};
+}
+function project(pt, tr){
+  const x=(pt.x-tr.xmin-tr.bw/2)*tr.base + tr.cx;
+  const y=(pt.y-tr.ymin-tr.bh/2)*tr.base + tr.cy;
+  return [x,y];
+}
+function niceStep(raw){
+  const pow = Math.pow(10, Math.floor(Math.log10(raw || 1)));
+  const n = raw / pow;
+  const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return m * pow;
+}
+function drawSpatialGrid(ctx, tr, rect){
+  const step = niceStep(Math.max(tr.bw, tr.bh) / 7);
+  const minor = step / 2;
+  ctx.save();
+  ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(31,78,121,.060)";
+  for(let x=Math.floor((tr.xmin-tr.bw*.1)/minor)*minor; x<=tr.xmin+tr.bw*1.1; x+=minor){
+    const [px0,py0]=project({x, y:tr.ymin-tr.bh*.1},tr);
+    const [px1,py1]=project({x, y:tr.ymin+tr.bh*1.1},tr);
+    ctx.beginPath(); ctx.moveTo(px0,py0); ctx.lineTo(px1,py1); ctx.stroke();
+  }
+  for(let y=Math.floor((tr.ymin-tr.bh*.1)/minor)*minor; y<=tr.ymin+tr.bh*1.1; y+=minor){
+    const [px0,py0]=project({x:tr.xmin-tr.bw*.1, y},tr);
+    const [px1,py1]=project({x:tr.xmin+tr.bw*1.1, y},tr);
+    ctx.beginPath(); ctx.moveTo(px0,py0); ctx.lineTo(px1,py1); ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(31,78,121,.115)";
+  for(let x=Math.floor((tr.xmin-tr.bw*.1)/step)*step; x<=tr.xmin+tr.bw*1.1; x+=step){
+    const [px0,py0]=project({x, y:tr.ymin-tr.bh*.1},tr);
+    const [px1,py1]=project({x, y:tr.ymin+tr.bh*1.1},tr);
+    ctx.beginPath(); ctx.moveTo(px0,py0); ctx.lineTo(px1,py1); ctx.stroke();
+  }
+  for(let y=Math.floor((tr.ymin-tr.bh*.1)/step)*step; y<=tr.ymin+tr.bh*1.1; y+=step){
+    const [px0,py0]=project({x:tr.xmin-tr.bw*.1, y},tr);
+    const [px1,py1]=project({x:tr.xmin+tr.bw*1.1, y},tr);
+    ctx.beginPath(); ctx.moveTo(px0,py0); ctx.lineTo(px1,py1); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawMiniMap(ctx, s, rect, side){
+  const w = 112, h = 94, x0 = 18, y0 = 18;
+  const b = s.bounds;
+  const bw = b.xmax - b.xmin, bh = b.ymax - b.ymin;
+  const scaleMini = Math.min((w - 16) / bw, (h - 22) / bh);
+  const ox = x0 + w / 2, oy = y0 + h / 2 + 5;
+  const mapPoint = pt => [
+    (pt.x - b.xmin - bw / 2) * scaleMini + ox,
+    (pt.y - b.ymin - bh / 2) * scaleMini + oy
+  ];
+  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "rgba(255,255,255,.88)";
+  ctx.strokeStyle = "rgba(31,78,121,.28)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, x0, y0, w, h, 12);
+  ctx.fill();
+  ctx.stroke();
+  ctx.save();
+  ctx.beginPath();
+  roundRect(ctx, x0 + 7, y0 + 20, w - 14, h - 28, 8);
+  ctx.clip();
+  ["Tumor", "CD8_T"].forEach(t => {
+    ctx.fillStyle = COLORS[t];
+    ctx.globalAlpha = t === "Tumor" ? .18 : .55;
+    const pts = s.points.filter(p => p.flags.includes(t));
+    const step = Math.max(1, Math.ceil(pts.length / 900));
+    for (let i = 0; i < pts.length; i += step) {
+      const [x, y] = mapPoint(pts[i]);
+      ctx.beginPath();
+      ctx.arc(x, y, t === "CD8_T" ? 1.15 : .8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+  const viewBox = currentBox(s, side);
+  const [rx0, ry0] = mapPoint({x: viewBox.xmin, y: viewBox.ymin});
+  const [rx1, ry1] = mapPoint({x: viewBox.xmax, y: viewBox.ymax});
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#1f4e79";
+  ctx.lineWidth = 1.4;
+  ctx.setLineDash([4, 3]);
+  ctx.strokeRect(rx0, ry0, rx1 - rx0, ry1 - ry0);
+  ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle = "#1f4e79";
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillText("全局缩略图 / 当前视野", x0 + 12, y0 + 14);
+  ctx.restore();
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+function drawSpace(canvas, side){
+  const s=sample(side);
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,rect.width,rect.height);
+  ctx.fillStyle="#f7f9fb"; ctx.fillRect(0,0,rect.width,rect.height);
+  const tr=canvasTransform(canvas,s,side);
+  ctx.save();
+  drawSpatialGrid(ctx, tr, rect);
+  const roi=activeRoi(s);
+  DRAW_ORDER.forEach(t=>{
+    const pts=s.points.filter(p=>p.type===t || p.flags.includes(t));
+    const visible = state.visible.has(t);
+    const focused = state.focusTypes.has(t);
+    const isBackground = t==="Tumor" || t==="Non_CLDN18_Tumor" || t==="CLDN18_Tumor";
+    ctx.fillStyle=COLORS[t];
+    ctx.globalAlpha = focused ? (isBackground ? .38 : .98) : visible ? (isBackground ? .24 : .42) : (isBackground ? .08 : .20);
+    const radius = focused
+      ? (t==="CD8_T" ? 3.9 : t==="B_cell" ? 3.2 : t==="PYCR1_CAF" ? 3.45 : 2.25)
+      : visible
+        ? (t==="CD8_T" ? 2.35 : t==="B_cell" ? 2.05 : 1.72)
+        : (t==="CD8_T" ? 1.65 : t==="B_cell" ? 1.45 : 1.18);
+    pts.forEach(pt=>{
+      const [x,y]=project(pt,tr);
+      if(x<-10||y<-10||x>rect.width+10||y>rect.height+10) return;
+      if(focused && !isBackground){
+        ctx.globalAlpha = .20;
+        ctx.beginPath(); ctx.arc(x,y,radius+2.4,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha = .98;
+      }
+      ctx.beginPath(); ctx.arc(x,y,radius,0,Math.PI*2); ctx.fill();
+    });
+  });
+  ctx.globalAlpha=1;
+  if(!state.roiMode){
+    const [x0,y0]=project({x:roi.x0,y:roi.y0},tr), [x1,y1]=project({x:roi.x1,y:roi.y1},tr);
+    ctx.strokeStyle="#1f4e79"; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+    ctx.strokeRect(x0,y0,x1-x0,y1-y0); ctx.setLineDash([]);
+    ctx.fillStyle="rgba(31,78,121,.08)"; ctx.fillRect(x0,y0,x1-x0,y1-y0);
+  }
+  if(el("showNeighborhood").checked && state.selected && state.selected.side===side){
+    const [x,y]=project(state.selected.pt,tr);
+    ctx.strokeStyle="#111"; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.arc(x,y,20*tr.base,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#111"; ctx.fillText("20μm", x+8, y-8);
+    ctx.fillStyle="#2F80ED"; ctx.globalAlpha=.95;
+    s.points.filter(p=>p.flags.includes("CD8_T")).forEach(pt=>{
+      const dx=pt.x-state.selected.pt.x, dy=pt.y-state.selected.pt.y;
+      if(dx*dx+dy*dy<=400){ const [cx,cy]=project(pt,tr); ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill(); }
+    });
+  }
+  drawMiniMap(ctx, s, rect, side);
+  ctx.restore();
+}
+
+function bindCanvas(canvas, side){
+  let dragging=false, last=null;
+  canvas.addEventListener("wheel", e=>{
+    e.preventDefault();
+    const factor=e.deltaY<0?1.12:.89;
+    state.zoom=Math.max(.6, Math.min(8, state.zoom*factor));
+    renderMaps();
+  }, {passive:false});
+  canvas.addEventListener("mousedown", e=>{ dragging=true; last=[e.clientX,e.clientY]; });
+  window.addEventListener("mouseup", ()=>dragging=false);
+  window.addEventListener("mousemove", e=>{
+    if(!dragging) return;
+    state.panX += e.clientX-last[0]; state.panY += e.clientY-last[1]; last=[e.clientX,e.clientY]; renderMaps();
+  });
+  canvas.addEventListener("click", e=>{
+    if(dragging) return;
+    const s=sample(side), tr=canvasTransform(canvas,s,side), rect=canvas.getBoundingClientRect();
+    const x=e.clientX-rect.left, y=e.clientY-rect.top;
+    let best=null, bestD=Infinity;
+    s.points.filter(p=>p.flags.includes("Tumor")).forEach(pt=>{
+      const [px,py]=project(pt,tr); const d=(px-x)**2+(py-y)**2;
+      if(d<bestD){ bestD=d; best=pt; }
+    });
+    if(best && bestD<900){ state.selected={side, pt:best}; renderAll(); }
+  });
+}
+
+function renderMaps(){
+  drawSpace(primaryCanvas,"primary"); drawSpace(metCanvas,"met");
+}
+function setRoiMode(next, animated=true){
+  if(animated) animateToView(state.activeRoiKey, next);
+  else {
+    state.roiMode = next;
+    el("roiMode").textContent=state.roiMode?"返回全局视图":"显示 ROI 局部";
+    renderAll();
+  }
+}
+function animateToView(nextRoiKey, nextRoiMode){
+  if(state.viewAnim) cancelAnimationFrame(state.viewAnim);
+  const from = { primary: currentBox(sample("primary"), "primary"), met: currentBox(sample("met"), "met") };
+  const startKey = state.activeRoiKey;
+  const startMode = state.roiMode;
+  state.activeRoiKey = nextRoiKey || "overview";
+  state.roiMode = !!nextRoiMode;
+  const to = { primary: boxFor(sample("primary"), state.activeRoiKey, state.roiMode), met: boxFor(sample("met"), state.activeRoiKey, state.roiMode) };
+  state.viewFrom = from;
+  state.viewTo = to;
+  state.viewProgress = 0;
+  el("roiMode").textContent=state.roiMode?"返回全局视图":"显示 ROI 局部";
+  const startZoom = state.zoom;
+  const startPanX = state.panX;
+  const startPanY = state.panY;
+  const t0 = performance.now();
+  const duration = 980;
+  function tick(now){
+    const k = Math.min(1, (now - t0) / duration);
+    const e = easeInOut(k);
+    state.viewProgress = k;
+    state.zoom = lerp(startZoom, 1, e);
+    state.panX = lerp(startPanX, 0, e);
+    state.panY = lerp(startPanY, 0, e);
+    renderMaps();
+    updateSide();
+    if(k < 1) state.viewAnim = requestAnimationFrame(tick);
+    else {
+      state.viewProgress = 1;
+      state.viewAnim = null;
+      state.viewFrom = null;
+      state.viewTo = null;
+      renderAll();
+    }
+  }
+  state.viewAnim = requestAnimationFrame(tick);
+}
+function renderAll(){
+  drawStats(); renderMaps(); updateSide(); updateConclusionActive();
+  const ps=sample("primary"), ms=sample("met");
+  el("primaryCount").textContent=`显示 ${visibleCount(ps).toLocaleString()} 个对象`;
+  el("metCount").textContent=`显示 ${visibleCount(ms).toLocaleString()} 个对象`;
+  const focusLabel = [...state.focusTypes].map(t=>TYPE_LABEL[t]).join(" / ");
+  el("primaryCaption").textContent=`样本 ${ps.sample}，${state.roiMode?"ROI 局部视图":"全局视图"}。当前导览主体：${focusLabel}。`;
+  el("metCaption").textContent=`样本 ${ms.sample}，${state.roiMode?"ROI 局部视图":"全局视图"}。手动勾选细胞后，导览不会覆盖你的显示选择。`;
+}
+function visibleCount(s){ return s.points.filter(p=>[...state.visible].some(t=>p.flags.includes(t)||p.type===t)).length; }
+
+function updateSide(){
+  const p=currentPair(), ps=sample("primary"), ms=sample("met");
+  const card=metricRecord(state.activeMetric);
+  el("sampleInfo").innerHTML = `
+    <span>患者编号<b>${p.patient_id}</b></span>
+    <span>配对样本<b>${p.pair_label}</b></span>
+    <span>Primary 总细胞<b>${ps.total_cells.toLocaleString()}</b></span>
+    <span>Met 总细胞<b>${ms.total_cells.toLocaleString()}</b></span>
+    <span>当前指标<b>${METRIC_LABEL[state.activeMetric]||card.label}</b></span>
+    <span>导览主体<b>${[...state.focusTypes].map(t=>TYPE_LABEL[t]).join(" / ")}</b></span>
+    <span>Met-Primary<b>${fmt(card.diff)}</b></span>
+    <span>相对变化<b>${rel(card.relative_change)}</b></span>`;
+  const directionText = card.direction==="down" ? "低于" : card.direction==="up" ? "高于" : "接近";
+  el("evidenceSentence").innerHTML = `
+    <div class="brief-line">
+      <span class="label">核心结论</span>
+      <b>该病例中，转移灶 ${card.label} ${directionText}原发灶。</b>
+    </div>
+    <div class="evidence-block">
+      <strong>Primary → Metastasis</strong>
+      <p>${fmt(card.primary)} → ${fmt(card.met)}；差值 ${fmt(card.diff)}，相对变化 ${rel(card.relative_change)}。</p>
+    </div>
+    <div class="evidence-block boundary">
+      <strong>表述边界</strong>
+      <p>这是空间证据展示，不单独作为机制证明；20μm 表示局部空间接触机会。</p>
+    </div>`;
+  const r1=activeRoi(ps).metrics, r2=activeRoi(ms).metrics;
+  el("roiInfo").innerHTML = ["Tumor","CD8_T","B_cell","PYCR1_CAF","CLDN18_Tumor","Non_CLDN18_Tumor","tumor_cd8_neighbors20"].map(k=>`
+    <div class="roi-pill">${k==="tumor_cd8_neighbors20"?"Tumor周围CD8均邻居数":TYPE_LABEL[k]||k}
+      <b>${fmt(r1[k])} / ${fmt(r2[k])}</b><span>Primary / Met</span></div>`).join("");
+  const roiName = {
+    overview: "全局概览 ROI",
+    cd8: "CD8 证据 ROI",
+    local_cd8: "肿瘤-CD8 局部邻域 ROI",
+    bcell: "B 细胞辅助证据 ROI",
+    cldn: "CLDN18.2 表型 ROI",
+    pycr1: "PYCR1+CAF 局部联系 ROI"
+  }[state.activeRoiKey] || "当前 ROI";
+  el("roiSentence").textContent = `${roiName} 用于帮助理解当前导览步骤的局部证据；表述保持为“局部 CD8 接触减少”或“局部关系减弱”，不写成机制证明。`;
+}
+
+function startTour(){
+  pauseTour(false); state.tourIndex=0; applyTour();
+  state.tourTimer=setInterval(()=>stepTour(1,false),TOUR_INTERVAL_MS);
+  state.tourPaused=false;
+  el("pauseStep").textContent="暂停";
+}
+function pauseTour(markPaused=true){
+  if(state.tourTimer){ clearInterval(state.tourTimer); state.tourTimer=null; }
+  if(markPaused){
+    state.tourPaused=true;
+    el("pauseStep").textContent="继续";
+  }
+}
+function resumeTour(){
+  if(state.tourTimer) return;
+  state.tourPaused=false;
+  el("pauseStep").textContent="暂停";
+  state.tourTimer=setInterval(()=>stepTour(1,false),TOUR_INTERVAL_MS);
+}
+function toggleTourPause(){
+  if(state.tourPaused) resumeTour();
+  else pauseTour(true);
+}
+function togglePresentationMode(){
+  document.body.classList.toggle("presentation");
+  const active=document.body.classList.contains("presentation");
+  el("presentationMode").textContent=active ? "退出截图模式" : "论文截图模式";
+  setTimeout(()=>renderMaps(), 80);
+}
+function stepTour(delta, manual){
+  if(manual) pauseTour(true);
+  state.tourIndex=(state.tourIndex+delta+DATA.tour.length)%DATA.tour.length; applyTour();
+}
+function applyTour(){
+  const step=DATA.tour[state.tourIndex];
+  el("tourTitle").textContent=`${state.tourIndex+1}/${DATA.tour.length} ${step.title}`;
+  el("tourText").textContent=step.text;
+  setStageConclusion(`Evidence ${state.tourIndex+1}/${DATA.tour.length}`, step.title, step.text);
+  state.activeMetric=step.metric;
+  setFocusTypes(step.types, false);
+  const shouldRoi = step.zoom === "roi";
+  drawStats();
+  animateToView(step.roiKey || "overview", shouldRoi);
+}
+
+function toggleBoundary(show){
+  el("boundaryModal").classList.toggle("active", show);
+  el("boundaryModal").setAttribute("aria-hidden", show ? "false" : "true");
+}
+
+function exportCurrentView(){
+  const W=1500,H=980, c=document.createElement("canvas"); c.width=W; c.height=H;
+  const ctx=c.getContext("2d");
+  ctx.fillStyle="#f7f9fb"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#12263f"; ctx.font="bold 34px sans-serif"; ctx.fillText(DATA.title,40,58);
+  ctx.fillStyle="#0f4c81"; ctx.font="bold 24px sans-serif"; ctx.fillText(DATA.claim,40,96);
+  ctx.drawImage(primaryCanvas,40,150,660,520);
+  ctx.drawImage(metCanvas,800,150,660,520);
+  ctx.fillStyle="#17202a"; ctx.font="bold 22px sans-serif"; ctx.fillText(`Primary ${sample("primary").sample}`,40,135); ctx.fillText(`Metastasis ${sample("met").sample}`,800,135);
+  ctx.font="18px sans-serif"; ctx.fillStyle="#687586";
+  const p=currentPair(), card=metricRecord(state.activeMetric);
+  ctx.fillText(`当前指标：${card.label} | Primary ${fmt(card.primary)} / Met ${fmt(card.met)} / 相对变化 ${rel(card.relative_change)}`,40,720);
+  ctx.fillText("20μm 邻域表示局部空间接触机会，不等同于证明真实细胞相互作用。",40,752);
+  let x=40,y=804; DRAW_ORDER.forEach(t=>{ if(!state.visible.has(t)) return; ctx.fillStyle=COLORS[t]; ctx.beginPath(); ctx.arc(x,y-5,7,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#17202a"; ctx.fillText(TYPE_LABEL[t],x+14,y); x+=160; });
+  const a=document.createElement("a");
+  a.download=`CODEX_pair_evidence_${p.pair_label.replaceAll(" ","_")}.png`;
+  a.href=c.toDataURL("image/png");
+  a.click();
+}
+
+init();
+</script>
+</body>
+</html>
